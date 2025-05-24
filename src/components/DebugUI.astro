@@ -15,10 +15,29 @@
 
 import * as THREE from 'three';
 import { OrbitControls  } from 'three/addons/controls/OrbitControls.js';
-import  GUI from 'lil-gui';
+import GUI from 'lil-gui'
+import gsap from 'gsap'
 
 // Debug
-const gui = new GUI();
+const gui = new GUI({
+  width: 300,
+  title: 'Nice debug UI',
+  closeFolders: false,
+});
+gui.hide();
+
+window.addEventListener('keydown', (event) => {
+  if(event.key == 'h')
+    gui.show(gui._hidden)
+})
+
+const debugObject = {
+  color: '#ff0000',
+  spin: () => {
+    gsap.to(mesh.rotation, { duration: 1, y: mesh.rotation.y + Math.PI * 2 })
+  },
+  subdivision: 2
+};
 
 const canvas = document.querySelector('canvas.webgl') as HTMLCanvasElement;
 
@@ -26,16 +45,26 @@ const canvas = document.querySelector('canvas.webgl') as HTMLCanvasElement;
 const scene = new THREE.Scene();
 
 // Object
-const geometry = new THREE.BoxGeometry(1, 1, 1, 2, 2, 2 );
+let geometry = new THREE.BoxGeometry(1, 1, 1 );
 const material = new THREE.MeshBasicMaterial({ 
-  color: 0xff0000,
-  wireframe: true
- });
- 
+  color: debugObject.color,
+  wireframe: true,
+});
 const mesh = new THREE.Mesh(geometry, material);
 scene.add(mesh);
 
-gui.add(mesh.position, 'y').min(-3).max(3).step(0.01);
+// Debug
+const CubeTweaks = gui.addFolder('Awesome cube');
+CubeTweaks.add(mesh.position, 'y').min(-3).max(3).step(0.01);
+CubeTweaks.add(mesh, 'visible');
+CubeTweaks.addColor(debugObject, 'color').onChange(() => {
+  material.color.set(debugObject.color);
+});
+CubeTweaks.add(debugObject, 'spin');
+CubeTweaks.add(debugObject, 'subdivision').min(1).max(20).step(1).onFinishChange(() => {
+  mesh.geometry.dispose();
+  mesh.geometry = new THREE.BoxGeometry(1, 1, 1, debugObject.subdivision, debugObject.subdivision, debugObject.subdivision);
+});
 
 // Sizes
 const sizes = {
@@ -54,13 +83,6 @@ window.addEventListener('resize', () => {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
 
-window.addEventListener('dblclick', () => {
-  if (!document.fullscreenElement) {
-    canvas.requestFullscreen();
-  } else {
-    document.exitFullscreen();
-  }
-});
 
 
 // Base Camera
